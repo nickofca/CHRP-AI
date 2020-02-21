@@ -1,0 +1,4 @@
+LoadPrediction/ProcessedData/*.csv
+LoadPrediction/RawData/*.xlsx
+.spyproject/
+
