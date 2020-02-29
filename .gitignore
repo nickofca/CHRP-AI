@@ -2,4 +2,4 @@ LoadPrediction/ProcessedData/*.csv
 LoadPrediction/RawData/*.xlsx
 .spyproject/
 DataAcquisition/Weather/data/
-
+**/.csv
