@@ -3,3 +3,4 @@ LoadPrediction/RawData/*.xlsx
 .spyproject/
 DataAcquisition/Weather/data/
 **/*.csv
+**/.ipynb_checkpoints
