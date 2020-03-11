@@ -108,6 +108,6 @@ class darkSky(object):
         midnight = datetime.datetime.combine(self.date, datetime.time.min)
         return int(time.mktime(midnight.timetuple()))
         
-        
-ds = darkSky(32.229856, -110.952019)
-oneDay = ds.sampleOneDay(True)
+if __name__ == '__main__':
+    ds = darkSky(32.229856, -110.952019)
+    oneDay = ds.sampleOneDay(True)
