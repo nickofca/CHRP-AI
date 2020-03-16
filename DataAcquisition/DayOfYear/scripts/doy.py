@@ -17,8 +17,8 @@ class doy(object):
     def getDOY(self):
         #Initialize the timestamped dataframe
         midnight = datetime.datetime.combine(self.date, datetime.time.min)
-        out = pd.DataFrame(index = midnight, columns = ["doy"])
-        out.loc[midnight] = self.date.timetuple().tm_yday
+        out = pd.DataFrame(index = pd.date_range(midnight, midnight + datetime.timedelta(days=1)), columns = ["doy"])
+        out["doy"] = self.date.timetuple().tm_yday
         
         #Upsample
         out = out.reindex(pd.date_range(midnight, midnight + datetime.timedelta(days=1), freq = "min"))
@@ -26,5 +26,8 @@ class doy(object):
         out = out.interpolate("linear")
         return out
         
-dog = doy()
-test = dog.getDOY()
+    
+if __name__ == '__main__':
+    doyInstance = doy()
+    day = doyInstance.getDOY()
+    
