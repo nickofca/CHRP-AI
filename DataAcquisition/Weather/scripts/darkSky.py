@@ -12,7 +12,7 @@ import datetime
 import time
 
 class darkSky(object):
-    def __init__(self,lat,long,apiKeyDir = "../apiKey.txt", date = datetime.date.today()):
+    def __init__(self,lat=32.229856,long=-110.952019,apiKeyDir = "../apiKey.txt", date = datetime.date.today()):
         self.lat = lat
         self.long = long
         self.date = date
@@ -78,7 +78,7 @@ class darkSky(object):
         return(dic)
     
         
-    def sampleOneDay(self,fromMidnight = False):    
+    def sampleOneDay(self,fromMidnight = True):    
         #Now
         now = datetime.datetime.now()
             
@@ -109,5 +109,5 @@ class darkSky(object):
         return int(time.mktime(midnight.timetuple()))
         
 if __name__ == '__main__':
-    ds = darkSky(32.229856, -110.952019)
+    ds = darkSky(32.229856, -110.952019, date = datetime.date(2020,3,1))
     oneDay = ds.sampleOneDay(True)
