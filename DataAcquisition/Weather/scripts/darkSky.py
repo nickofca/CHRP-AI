@@ -10,12 +10,12 @@ import requests
 import pandas as pd
 import datetime
 import time
+import os
 
 class darkSky(object):
-    def __init__(self,lat=32.229856,long=-110.952019,apiKeyDir = "../apiKey.txt", date = datetime.date.today()):
+    def __init__(self,lat=32.229856,long=-110.952019,apiKeyDir = os.path.dirname(os.path.abspath(__file__)) + "/../apiKey.txt"):
         self.lat = lat
         self.long = long
-        self.date = date
         #Import API key
         with open(apiKeyDir,"r") as file:
             self.apiKey = file.read().splitlines()[0]
@@ -78,9 +78,9 @@ class darkSky(object):
         return(dic)
     
         
-    def sampleOneDay(self,fromMidnight = True):    
-        #Now
-        now = datetime.datetime.now()
+    def sampleOneDay(self, date = datetime.date.today(),fromMidnight = True):    
+        #The date of interest
+        self.date = date
             
         #Pull the hourly weather predictions from the dark sky api and put as dataframe        
         hourly = self.hourly(fromMidnight)
@@ -97,6 +97,7 @@ class darkSky(object):
             out = out.reindex(pd.date_range(midnight, midnight + datetime.timedelta(days=1), freq = "min"))
         
         else:
+            now = datetime.datetime.now()
             out = out.set_index(pd.date_range(now, now + datetime.timedelta(days=1), freq = "H"))        
             #Reset index to time stamp
             out = out.reindex(pd.date_range(now, now + datetime.timedelta(days=1), freq = "min"))
@@ -109,5 +110,5 @@ class darkSky(object):
         return int(time.mktime(midnight.timetuple()))
         
 if __name__ == '__main__':
-    ds = darkSky(32.229856, -110.952019, date = datetime.date(2020,3,1))
-    oneDay = ds.sampleOneDay(True)
+    ds = darkSky(32.229856, -110.952019)
+    oneDay = ds.sampleOneDay(date = datetime.date(2020,3,1))
