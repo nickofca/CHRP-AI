@@ -13,37 +13,52 @@ from ClassSchedule.scripts.classSchedule import classSchedule
 import numpy as np
 
 
-class dayData(): 
-    def __init__(self, date = datetime.date(2019,2,3)):
-        self.date = date
-        
-    def getDaily(self):
+#TODO: Get past usage data
+
+class dayData():         
+    def getDaily(self, date = datetime.date.today()):
         #Day of year
-        dayOfYear = doy().getDOY(self.date)
+        dayOfYear = doy().getDOY(date)
         
         #Class data
-        classBool = classSchedule().scheduleDay(self.date.strftime('%Y-%m-%d'))
+        classBool = classSchedule().scheduleDay(date.strftime('%Y-%m-%d'))
         
         #Construct tuple of numpy arrays of minute and day data
         return np.array([dayOfYear,classBool])
         
-    def getMinutely(self):
+    def getMinutely(self, date = datetime.date.today()):
         #Weather data
-        weather = darkSky().sampleOneDay(self.date)
+        weather = darkSky().sampleOneDay(date)
 
         #Return appended values
         return weather.values
         
+#Get data for the a set of any dates
 class setData():
-    def get(dateIter = [datetime.datetime.today() - datetime.timedelta(days=x) for x in range(10)]):
-        dailyData = np.stack([dayData(date).getDaily() for date in dateIter])
-        minutelyData = np.stack([dayData(date).getMinutely() for date in dateIter])
+    def get(self, dateIter = [datetime.datetime.today() - datetime.timedelta(days=x) for x in range(10)]):
+        dailyData = np.stack([dayData().getDaily(date) for date in dateIter])
+        minutelyData = np.stack([dayData().getMinutely(date) for date in dateIter])
         return (minutelyData, dailyData)
+    
+    def getDaily(self, dateIter = [datetime.datetime.today() - datetime.timedelta(days=x) for x in range(10)]):
+        return np.stack([dayData().getDaily(date) for date in dateIter])
         
+    def getMinutely(self, dateIter = [datetime.datetime.today() - datetime.timedelta(days=x) for x in range(10)]):
+        return np.stack([dayData().getMinutely(date) for date in dateIter])
+        
+#Get the data for the day and all previous dates
+class dataStream():
+    def getDaily(self, date = datetime.date.today()):
+        return np.stack([dayData().getDaily(date - datetime.timedelta(days=x)) for x in range(7)])
      
+    def getMinutely(self, date = datetime.date.today()):
+        return np.stack([dayData().getMinutely(date - datetime.timedelta(days=x)) for x in range(7)])
+             
 if __name__ == '__main__':
     dd = dayData()
     minutelyData = dd.getDaily()
     dailyData = dd.getMinutely()
-    minutelyDataSet, dailyDataSet = setData.get()
-    
+    minutelyDataSet, dailyDataSet = setData().get()
+    ds = dataStream()
+    dailyStream = ds.getDaily()
+    minutelyStream = ds.getMinutely()
