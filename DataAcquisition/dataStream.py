@@ -11,9 +11,11 @@ from Weather.scripts.darkSky import darkSky
 from DayOfYear.scripts.doy import doy
 from ClassSchedule.scripts.classSchedule import classSchedule
 import numpy as np
+import time
 
 
-#TODO: Get past usage data
+#TODO: Get past load data
+#TODO: Deal with pull limit for weather (potentially pull data offline)
 
 class dayData():         
     def getDaily(self, date = datetime.date.today()):
@@ -28,7 +30,7 @@ class dayData():
         
     def getMinutely(self, date = datetime.date.today()):
         #Weather data
-        weather = darkSky().sampleOneDay(date)
+        weather = darkSky().retrieveData(date)
 
         #Return appended values
         return weather.values
@@ -55,6 +57,7 @@ class dataStream():
         return np.stack([dayData().getMinutely(date - datetime.timedelta(days=x)) for x in range(7)])
              
 if __name__ == '__main__':
+    now = time.time()
     dd = dayData()
     minutelyData = dd.getDaily()
     dailyData = dd.getMinutely()
@@ -62,3 +65,4 @@ if __name__ == '__main__':
     ds = dataStream()
     dailyStream = ds.getDaily()
     minutelyStream = ds.getMinutely()
+    print(f"Running time: {time.time()-now}")
