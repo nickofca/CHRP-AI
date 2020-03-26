@@ -95,6 +95,7 @@ class darkSky(object):
 #             windGust: Meters per second.
 #             pressure: Hectopascals.
 #             visibility: Kilometers.
+#             ozone: Dobsons.
 # =============================================================================
             if(i<=24):
                 try:

@@ -15,7 +15,6 @@ import time
 
 
 #TODO: Get past load data
-#TODO: Deal with pull limit for weather (potentially pull data offline)
 
 class dayData():         
     def getDaily(self, date = datetime.date.today()):
