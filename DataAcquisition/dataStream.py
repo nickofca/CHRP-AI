@@ -48,11 +48,6 @@ class dataStream():
 
         #Return outgoing numpy array
         return out.values
-        
-    def get(self, dateIter = [datetime.datetime.today() - datetime.timedelta(days=x) for x in range(10)]):
-        dailyData = np.stack([self.getDaily(date) for date in dateIter])
-        minutelyData = np.stack([self.getMinutely(date) for date in dateIter])
-        return (minutelyData, dailyData)
     
     def getDailySet(self, dateIter = [datetime.datetime.today() - datetime.timedelta(days=x) for x in range(10)]):
         return np.stack([self.getDaily(date) for date in dateIter])
@@ -63,15 +58,12 @@ class dataStream():
     def getDailyStream(self, date = datetime.date.today()):
         return np.stack([self.getDaily(date - datetime.timedelta(days=x)) for x in range(7)])
      
-    def getMinutelyStream(self, date = datetime.date.today(), pastWeek = False):
-        if pastWeek:
-            return [self.getMinutely(date - datetime.timedelta(days=x)) for x in range(1,7)]
-        else:
-            return self.getMinutely(date)
+    def getMinutelyStream(self, date = datetime.date.today(), offsetDay = 0):
+        return self.getMinutely(date - datetime.timedelta(days=x))
+
     
     def generate(self, dateSet, batch_size = 10):
-        x = []
-        y = []
+        [ for date in dateSet]
         for date in dateSet:
             
             x = [self.getDailyStream(date),self.getMinutelyStream(date)]+self.getMinutelyStream(date, pastWeek=True)
