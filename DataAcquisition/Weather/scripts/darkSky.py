@@ -13,7 +13,7 @@ import time
 import os
 
 class darkSky(object):
-    def __init__(self,lat=32.229856,long=-110.952019,apiKeyDir = os.path.dirname(os.path.abspath(__file__)) + "/../apiKey2.txt"):
+    def __init__(self,lat=32.229856,long=-110.952019,apiKeyDir = os.path.dirname(os.path.abspath(__file__)) + "/../apiKey.txt"):
         #File working directory for relative paths
         self.wd = os.path.dirname(os.path.abspath(__file__))
         self.lat = lat
@@ -188,8 +188,9 @@ class darkSky(object):
         out.loc["0.00"] = list(current.values())
         out = out.drop("Overall Weather",1)
         out = out.astype(float)
+        #Interpolation sections (to minutes)
         if fromMidnight:
-            midnight = datetime.datetime.combine(datetime.datetime.today(), datetime.time.min)
+            midnight = datetime.datetime.combine(date, datetime.time.min)
             out = out.set_index(pd.date_range(midnight, midnight + datetime.timedelta(days=1), freq = "H"))
             #Reset index to time stamp
             out = out.reindex(pd.date_range(midnight, midnight + datetime.timedelta(days=1), freq = "min"))
@@ -222,10 +223,11 @@ class darkSky(object):
         for date in dateSet:
             self.pullDataFrameOnline(date = date, save = True)
     
-    def retrieveData(self, date):
-        return pd.read_csv(self.wd + "/../data/" + date.strftime("%Y_%m_%d") + ".csv")
+    def getData(self, date):
+        return pd.read_csv(self.wd + "/../data/" + date.strftime("%Y_%m_%d") + ".csv", index_col = 0)
         
 if __name__ == '__main__':
     ds = darkSky(32.229856, -110.952019)
-    #oneDay = ds.pullDataFrameOnline(date = datetime.date(2020,3,1))
-    ds.makeArchives([datetime.date.today() - datetime.timedelta(days= x + 1106) for x in range(500)])
+    #oneDay = ds.pullDataFrameOnline(date = datetime.date(2020,3,1), save = True)
+    dsData = ds.getData(date = datetime.date(2020,3,1))
+    ds.makeArchives([datetime.date.today() - datetime.timedelta(days= x + 999) for x in range(1000)])

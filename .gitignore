@@ -4,3 +4,4 @@ LoadPrediction/RawData/*.xlsx
 DataAcquisition/Weather/data/
 *.csv
 **/.ipynb_checkpoints
+**/__pycache__
