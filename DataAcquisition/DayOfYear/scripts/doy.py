@@ -9,16 +9,17 @@ Created on Sat Mar  7 05:07:35 2020
 import datetime
 import pandas as pd
 
-class doy(object):
-    def __init__(self, date = datetime.date.today()):
-        self.date = date
-        
+class doy(object):        
     #Returns day of year upsampled to the minute        
-    def getDOY(self):
+    def getDOY(self, date = datetime.date.today(), byMinute = False):
+        #Simple return
+        if not byMinute:
+            return date.timetuple().tm_yday
+
         #Initialize the timestamped dataframe
-        midnight = datetime.datetime.combine(self.date, datetime.time.min)
+        midnight = datetime.datetime.combine(date, datetime.time.min)
         out = pd.DataFrame(index = pd.date_range(midnight, midnight + datetime.timedelta(days=1)), columns = ["doy"])
-        out["doy"] = self.date.timetuple().tm_yday
+        out["doy"] = date.timetuple().tm_yday
         
         #Upsample
         out = out.reindex(pd.date_range(midnight, midnight + datetime.timedelta(days=1), freq = "min"))
@@ -29,5 +30,5 @@ class doy(object):
     
 if __name__ == '__main__':
     doyInstance = doy()
-    day = doyInstance.getDOY()
+    day = doyInstance.getDOY(byMinute = True)
     

@@ -23,39 +23,57 @@ Consider the following options:
 
 import keras
 import datetime
+from DataAcquisition.dataStream import dataStream
+import pandas as pd
+import keras.backend as back
+
+##Data Preprocessing 
+#Seperate the training and testing days
+#In order to prevent data leakage, training load should not come be mixed with testing (even for the past week data streams)
+testDates = pd.date_range(datetime.date(2019,2,19),datetime.date(2019,3,30))
+trainDates = pd.date_range(datetime.date(2019,12,7),datetime.date(2020,2,12))
 
 ##Pertinent Variables
 #Date of interest
 day = datetime.date(2020,3,1)
-nFeatures = 10
+minutelyFeatures = 9
+dailyFeatures = 2
 
 ##Initialize the neural network
-#Predictions/known information for the current day 
+#Predictions/known information for the current day and past week 
 # Includes: Weather
-presentFeatures = keras.Input((nFeatures,1441))    #Number of features by the number of minutes per day
-presentCNN = keras.layers.Conv1D()(presentFeatures)
-
-#Data for the past days
 #Includes: Past load and weather
-pastFeatures = [keras.Input((nFeatures,1441)) for day in range(7)]
-pastCNN = [keras.layers.Conv1D()(pastFeature) for pastFeature in pastFeatures]
+minutelyInput = [keras.Input((720,minutelyFeatures)) for day in range(7)]
+CNNs = [keras.layers.SeparableConv1D(filters=32, kernel_size=4, data_format="channels_first")(minutelyInput) for minutelyInput in minutelyInput]
 
 #Concatenate CNN outputs and run through a gated reccurent unit
-pastCNN.append(presentCNN)
-allCNN = keras.layers.concatenate(pastCNN)
-GRU = keras.layers.GRU()(allCNN)
+cat = keras.layers.Concatenate()(CNNs)
+GRU = keras.layers.Bidirectional(keras.layers.GRU(16,return_sequences=True))(cat)
 
 #TODO: Consider a deconv layer
 #Deconv = keras.layers.Deconv1D()(GRU)
 
+#Daily features
+dailyInput = keras.Input((7,dailyFeatures))
+
+#Flatten both layers
+flatDaily = keras.layers.Flatten()(dailyInput)
+flatMinutely = keras.layers.Flatten()(GRU)
+
+#Combine daily and minutely data streams
+cat = keras.layers.concatenate([flatDaily,flatMinutely])
+
 #Fully connected section
-dense1 = keras.layers.Dense((32))(GRU)
+dense1 = keras.layers.Dense((32))(cat)
 dense2 = keras.layers.Dense((64))(dense1)
-dense3 = keras.layers.Dense((1441))(dense2)
+dense3 = keras.layers.Dense((720))(dense2)
 
 #Assemble and compile the overall model
-model = keras.models.Model(inputs=[presentFeatures,pastFeatures], outputs=[dense3])
-model.compile()
+model = keras.models.Model(inputs=[dailyInput]+minutelyInput, outputs=dense3)
+keras.utils.plot_model(model, show_shapes = True, to_file="model.png")
+keras.utils.plot_model(model, to_file="modelNoLabels.png")
 
-model.fit()
+model.compile(loss='mean_squared_error', optimizer = "adagrad")
+
+model.fit_generator(dataStream().generate(testDates))
 
