@@ -19,7 +19,11 @@ class chillerLoad():
     def getData(self, date):
         endTime = date + datetime.timedelta(days = 1)
         out = self.data[date:endTime]
-        out = out.drop(endTime)
+        #Eliminate midnight if it is available
+        try:
+            out = out.drop(endTime)
+        except Exception:
+            pass
         return out
         
 if __name__ == '__main__':

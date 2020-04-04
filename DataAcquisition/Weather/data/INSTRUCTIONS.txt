@@ -1,5 +1,5 @@
 Fill the data directory with the data here (e.g. data/2020_2_10.csv, etc.):
-https://drive.google.com/open?id=19q408O37GHN3xA9A2ebws8BKFXbjVVnS
+https://drive.google.com/drive/folders/1xcrFl1fLcXwbW24ub0XQGPFfLaf93VZP?usp=sharing
 
 Must use University email to access
 

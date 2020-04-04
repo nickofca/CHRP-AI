@@ -26,18 +26,20 @@ import datetime
 from DataAcquisition.dataStream import dataStream
 import pandas as pd
 import keras.backend as back
+import math
 
 ##Data Preprocessing 
 #Seperate the training and testing days
 #In order to prevent data leakage, training load should not come be mixed with testing (even for the past week data streams)
-testDates = pd.date_range(datetime.date(2019,2,19),datetime.date(2019,3,30))
-trainDates = pd.date_range(datetime.date(2019,12,7),datetime.date(2020,2,12))
+trainDates = pd.date_range(datetime.date(2019,2,19),datetime.date(2019,3,30))
+testDates = pd.date_range(datetime.date(2019,12,7),datetime.date(2020,2,12))
 
 ##Pertinent Variables
 #Date of interest
 day = datetime.date(2020,3,1)
 minutelyFeatures = 9
 dailyFeatures = 2
+batch_size = 10
 
 ##Initialize the neural network
 #Predictions/known information for the current day and past week 
@@ -75,5 +77,6 @@ keras.utils.plot_model(model, to_file="modelNoLabels.png")
 
 model.compile(loss='mean_squared_error', optimizer = "adagrad")
 
-model.fit_generator(dataStream().generate(testDates))
+model.fit_generator(dataStream().generate(trainDates, batch_size=batch_size),steps_per_epoch=math.floor(len(trainDates)/batch_size), epochs= 25, 
+                    validation_data =  dataStream().generate(testDates, batch_size=batch_size), validation_steps= math.floor(len(trainDates)/batch_size))
 
