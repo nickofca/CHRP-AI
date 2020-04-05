@@ -95,6 +95,6 @@ if __name__ == '__main__':
     trainDates = pd.date_range(datetime.date(2019,2,19),datetime.date(2019,3,30))
     testDates = pd.date_range(datetime.date(2019,12,7),datetime.date(2020,2,12))
     #testStream = [i for i in ds.generate([datetime.date(2019,6,2),datetime.date(2019,7,2),datetime.date(2019,8,2)])]
-    trainStream = [i for i in ds.generate(trainDates)]
-    testStream = [i for i in ds.generate(testDates)]
+    #trainStream = [i for i in ds.generate(trainDates)]
+    #testStream = [i for i in ds.generate(testDates)]
     print(f"Running time: {time.time()-now}")
