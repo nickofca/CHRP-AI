@@ -14,7 +14,7 @@ from DataAcquisition.Load.scripts.chillerLoad import chillerLoad
 import numpy as np
 import time
 import pandas as pd
-
+import warnings
 
 #TODO: Get past load data
 
@@ -59,9 +59,12 @@ class dataStream():
     def getDailyStream(self, date = datetime.date.today()):
         return np.stack([self.getDaily(date - datetime.timedelta(days=x)) for x in range(7)])
      
-    def getMinutelyStream(self, date = datetime.date.today(), offsetDay = 0):
-        return self.getMinutely(date - datetime.timedelta(days=offsetDay))
-
+    def getMinutelyStream(self, date = datetime.date.today(), offsetDay = 0, includeLoad = True, verbose = False):
+        out = self.getMinutely(date - datetime.timedelta(days=offsetDay),includeLoad)
+        if verbose:
+            print(f"Date ({date}) has shape ({out.shape})")
+        return out
+            
     def batches(self, iterable, batch_size):
         for i in range(0, len(iterable), batch_size):
             yield iterable[i:i + batch_size]
@@ -72,18 +75,18 @@ class dataStream():
         while True:
             for dateSubSet in self.batches(dateSet,batch_size):
                 #Gather the minutely data by batch and then by relative day.
-                print(dateSubSet)
-                minutely = [np.stack([self.getMinutelyStream(date) for date in dateSubSet]) for offset in range(7)]
+                minutelyPresent = [np.stack([self.getMinutelyStream(date, includeLoad = False) for date in dateSubSet])]
+                minutelyPast = [np.stack([self.getMinutelyStream(date,offsetDay = offset) for date in dateSubSet]) for offset in range(1,7)]
                 #Gather stack of daily data
                 daily = [np.stack([self.getDailyStream(date) for date in dateSubSet])]
-                x = daily+minutely
-                y = np.stack([self.cl.getData(date).iloc[:,0].values for date in dateSubSet])
+                x = daily + minutelyPresent + minutelyPast
+                y = np.stack([self.cl.getData(date, hourly = True).iloc[:,0].values for date in dateSubSet])
                 yield (x,y)
            
 
 if __name__ == '__main__':
     now = time.time()
-    #testDate = datetime.date(2019,6,2)
+    testDate = datetime.date(2019,3,1)
     #dd = dayData()
     #minutelyData = dd.getMinutely(testDate)
     #dailyData = dd.getDaily(testDate)
@@ -94,7 +97,11 @@ if __name__ == '__main__':
     #minutelyPastStream = ds.getMinutelyStream(testDate, pastWeek=True)
     trainDates = pd.date_range(datetime.date(2019,2,19),datetime.date(2019,3,30))
     testDates = pd.date_range(datetime.date(2019,12,7),datetime.date(2020,2,12))
+    fullDates = pd.date_range(datetime.date(2016,1,1),datetime.date(2020,2,12))
     #testStream = [i for i in ds.generate([datetime.date(2019,6,2),datetime.date(2019,7,2),datetime.date(2019,8,2)])]
     #trainStream = [i for i in ds.generate(trainDates)]
     #testStream = [i for i in ds.generate(testDates)]
+    #for i in ds.generate(testDates):
+    #    x =0
+    test = ds.getMinutelyStream(testDate)
     print(f"Running time: {time.time()-now}")
