@@ -8,6 +8,9 @@ Created on Thu Mar 26 16:41:08 2020
 import os
 import pandas as pd
 import datetime
+import plotly.express as px
+import plotly.io as pio
+pio.renderers.default = "browser"
 
 class chillerLoad():
     def __init__(self):
@@ -16,6 +19,9 @@ class chillerLoad():
         self.data[0] = pd.to_datetime(self.data[0]) 
         self.data = self.data.set_index(0)
         self.valid_days = self.data.index.map(pd.Timestamp.date).unique()
+    
+        #Reset column names
+        self.data.columns = ["Load"]
     
     def getData(self, date, hourly = False, hourlyAggFun = max):
         #Check if the input date is within the registered dates
@@ -35,12 +41,16 @@ class chillerLoad():
             pass
 
         if hourly:
-            out = out.groupby(pd.Grouper(freq = 'h')).aggregate(max)
+            out = out.groupby(pd.Grouper(freq = 'h')).aggregate(hourlyAggFun)
         
         return out
+    
+    def plot(self):
+        self.fig = px.scatter(self.data.reset_index(), x = 0, y = "Load")
         
 if __name__ == '__main__':
     cL = chillerLoad()
     out = cL.getData(datetime.date(2020,1,1), True)
-    
+    cL.plot()
+    cL.fig.show()
     

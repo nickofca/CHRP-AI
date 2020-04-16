@@ -27,12 +27,17 @@ from DataAcquisition.dataStream import dataStream
 from Tools.Tools import dataSplitting
 import pandas as pd
 import math
+import tensorflow as tf
+import numpy as np
 
 #TODO: Get weeks of the year and shuffle them into training and test
 
 
 class LoadForecast():
     def __init__(self, dateRange = pd.date_range(datetime.date(2019,2,19),datetime.date(2020,2,11)), testingFrac = .1):
+        #Initialize data stream
+        self.ds = dataStream(hourly = True)
+        
         ##Construct model architecture    
         ##Data Preprocessing 
         #Seperate the training and testing days
@@ -62,23 +67,18 @@ class LoadForecast():
         #Predictions/known information for the current day and past week 
         # Includes: Weather
         #Includes: Past load and weather
-        minutelyPresentInput = [keras.Input((720,self.minutelyFeatures-1))]
-        minutelyPastInput = [keras.Input((720,self.minutelyFeatures)) for day in range(1,7)]
-        minutelyInput = minutelyPastInput + minutelyPresentInput
-        
+        hourlyInput = keras.Input((168,self.minutelyFeatures))
+
         ##Convolutional layers
-        CNNs = [keras.layers.Conv1D(filters=self.conv_filters, kernel_size = self.kernel_size, data_format = "channels_last")(minutelyInput) for minutelyInput in minutelyInput]
+        CNNs = [keras.layers.Conv1D(filters=self.conv_filters, kernel_size = kSize*2 + 3, padding = "same", data_format = "channels_last")(hourlyInput) for kSize in range(3)]
         pools = [keras.layers.MaxPool1D(data_format = "channels_last")(CNN) for CNN in CNNs]
-        for i in range(self.conv_layers-1):
-            CNNs = [keras.layers.Conv1D(filters= self.conv_filters, kernel_size=self.kernel_size, data_format = "channels_last")(pool) for pool in pools]
-            pools = [keras.layers.MaxPool1D(data_format = "channels_last")(CNN) for CNN in CNNs]
-        
+
         #Concatenate CNN outputs and run through a gated reccurent unit
-        cat = keras.layers.Concatenate()(pools)
-        GRU = keras.layers.Bidirectional(keras.layers.GRU(16))(cat)
+        cat = keras.layers.Concatenate(axis = 1)(pools)
+        GRU = keras.layers.Bidirectional(keras.layers.GRU(16, return_sequences=True))(cat)
         
-        #TODO: Consider a deconv layer
-        #Deconv = keras.layers.Deconv1D()(GRU)
+        #Take the mean of each layer
+        hourly = keras.layers.Lambda(keras.backend.mean, arguments={"axis":1})(GRU)
         
         #Daily features
         dailyInput = keras.Input((7,self.dailyFeatures))
@@ -88,10 +88,9 @@ class LoadForecast():
             
         #Flatten both layers
         flatDaily = keras.layers.Flatten()(denseDaily)
-        flatMinutely = GRU
         
         #Combine daily and minutely data streams
-        cat = keras.layers.concatenate([flatDaily,flatMinutely])
+        cat = keras.layers.concatenate([flatDaily, hourly])
         
         #Fully connected section
         dense = keras.layers.Dense((self.dense_size))(cat)
@@ -100,7 +99,7 @@ class LoadForecast():
         out = keras.layers.Dense((24))(dense)
         
         #Assemble and compile the overall model
-        self.model = keras.models.Model(inputs=[dailyInput]+minutelyInput, outputs=out)
+        self.model = keras.models.Model(inputs=[dailyInput,hourlyInput], outputs=out)
         
         #Set the pertinent optimization parameters
         self.model.compile(loss='mean_squared_error', optimizer = "adam", metrics=['mae'])
@@ -111,45 +110,48 @@ class LoadForecast():
             batch_size = self.batch_size
         
         #Train the model
-        self.history = self.model.fit_generator(dataStream().generate(self.trainDates, batch_size=self.batch_size),
+        self.history = self.model.fit_generator(self.ds.generate(self.trainDates, batch_size=self.batch_size),
                                                 steps_per_epoch = math.floor(len(self.trainDates)/self.batch_size),
                                                 epochs= self.epochs,
-                                                validation_data = dataStream().generate(self.testDates, batch_size=self.batch_size), 
+                                                validation_data = self.ds.generate(self.testDates, batch_size=self.batch_size), 
                                                 validation_steps= math.floor(len(self.trainDates)/self.batch_size))
     
-    def save(self, modelDir = "../Models/model.h5", withHist = True):
+    def save(self, modelDir = "../Models/modelPaper.h5", withHist = True):
         #Save the model
         if withHist:
             lastMAE = self.history.history["val_mean_absolute_error"][-1]
             modelDir = "../Models/model_valMAE_" + str(lastMAE)[:8] + ".h5"
         self.model.save(modelDir)
         
-    def plot(self, imageDir = "../Figures/model.png"):
+    def plot(self, imageDir = "../Figures/modelPaper.png"):
         #Plot the model with and without edges.
         keras.utils.plot_model(self.model, show_shapes = True, to_file= imageDir)
         
-    def load(self, modelDir = "../Models/model.h5"):
+    def load(self, modelDir = "../Models/modelPaper.h5"):
         #Load the model from the specified directory
-        self.model = keras.models.load_model(modelDir)
+        self.model = keras.models.load_model(modelDir, custom_objects={'tf': tf})
 
-    def evaluate(self):
-        self.testTruth = next(dataStream().generate(self.testDates[0:10],10))[1]
-        self.testPrediction = self.model.predict_generator(dataStream().generate(lf.testDates,10),steps = 1)
+    def evaluate(self,length = "all"):
+        if length == "all":
+            length = len(self.testDates)
+        self.testTruth = next(self.ds.generate(self.testDates[0:length],length))[1]
+        self.testPrediction = self.model.predict_generator(self.ds.generate(self.testDates,length),steps = 1)
         self.error = self.testTruth - self.testPrediction
-        self.pctError = self.error / self.testTruth
+        self.pctErrorDF = self.error / self.testTruth
+        self.pctError = np.mean(np.abs(self.pctErrorDF))
         
 if __name__ == '__main__':
-    train = True
-    initialize = False
+    train = False
+    initialize = True
     if initialize:
-        lf = LoadForecast()
+        lfPaper = LoadForecast()
     if train:
-        lf.train()
-        lf.save(withHist = False)
+        lfPaper.train()
+        lfPaper.save(withHist = False)
     #Real Values of a sample out of test
-    lf.evaluate()
-    error = lf.error
-    pctError = lf.pctError
+    lfPaper.evaluate("all")
+    error = lfPaper.error
+    pctError = lfPaper.pctError
     
         
         
