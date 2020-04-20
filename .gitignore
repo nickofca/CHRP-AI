@@ -6,3 +6,5 @@ DataAcquisition/Weather/data/minutely/*.csv
 *.csv
 **/.ipynb_checkpoints
 **/__pycache__
+**.h5
+

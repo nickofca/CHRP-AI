@@ -11,6 +11,7 @@ import pandas as pd
 import datetime
 import time
 import os
+import glob
 
 class darkSky(object):
     def __init__(self,lat=32.229856,long=-110.952019,apiKeyDir = os.path.dirname(os.path.abspath(__file__)) + "/../apiKey2.txt"):
@@ -217,19 +218,32 @@ class darkSky(object):
         for date in dateSet:
             self.pullDataFrameOnline(date = date, save = True, minutely = minutely)
     
-    def getData(self, date, hourly = False):
+    def getData(self, date=None, hourly = False, filepath = None):
+        if filepath == None:    
+            if not hourly:
+                direc = "minutely"
+            else:
+                direc = "hourly"
+            filepath = self.wd + "/../data/" + direc + "/" + date.strftime("%Y_%m_%d") + ".csv"
+        #Load weather data from archive (see data directory if you can't find the file for instructions)
+        out = pd.read_csv(filepath, index_col = 0, parse_dates=[0])
+        #Get rid of the next day midnight
+        out = out.drop(out.index[-1])
+        return out
+    
+    def loadAll(self, hourly = False):
         if not hourly:
             direc = "minutely"
         else:
             direc = "hourly"
-        #Load weather data from archive (see data directory if you can't find the file for instructions)
-        out = pd.read_csv(self.wd + "/../data/" + direc + "/" + date.strftime("%Y_%m_%d") + ".csv", index_col = 0, parse_dates=[0])
-        #Get rid of the next day midnight
-        out = out.drop(out.index[-1])
-        return out
+        self.all = pd.DataFrame()
+        for file in glob.glob(self.wd + "/../data/" + direc + "/*.csv"):
+            self.all = pd.concat((self.all,self.getData(filepath = file, hourly = hourly)))    
+    
     
 if __name__ == '__main__':
     ds = darkSky(32.229856, -110.952019)
     #oneDay = ds.pullDataFrameOnline(date = datetime.date(2020,3,1), save = True)
     #dsData = ds.getData(date = datetime.date(2020,3,1))
-    ds.makeArchives([datetime.date.today() - datetime.timedelta(days= x + 980) for x in range(1000)], minutely = False)
+    #ds.makeArchives([datetime.date.today() - datetime.timedelta(days= x + 980) for x in range(1000)], minutely = False)
+    #ds.loadAll()

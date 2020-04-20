@@ -8,9 +8,7 @@ Created on Thu Mar 26 16:41:08 2020
 import os
 import pandas as pd
 import datetime
-import plotly.express as px
-import plotly.io as pio
-pio.renderers.default = "browser"
+
 
 class chillerLoad():
     def __init__(self):
@@ -45,8 +43,6 @@ class chillerLoad():
         
         return out
     
-    def plot(self):
-        self.fig = px.scatter(self.data.reset_index(), x = 0, y = "Load")
         
 if __name__ == '__main__':
     cL = chillerLoad()
