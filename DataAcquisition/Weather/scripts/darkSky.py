@@ -11,9 +11,10 @@ import pandas as pd
 import datetime
 import time
 import os
+import glob
 
 class darkSky(object):
-    def __init__(self,lat=32.229856,long=-110.952019,apiKeyDir = os.path.dirname(os.path.abspath(__file__)) + "/../apiKey.txt"):
+    def __init__(self,lat=32.229856,long=-110.952019,apiKeyDir = os.path.dirname(os.path.abspath(__file__)) + "/../apiKey2.txt"):
         #File working directory for relative paths
         self.wd = os.path.dirname(os.path.abspath(__file__))
         self.lat = lat
@@ -22,11 +23,8 @@ class darkSky(object):
         with open(apiKeyDir,"r") as file:
             self.apiKey = file.read().splitlines()[0]
     
-    def weather_json(self,fromMidnight):
-            if fromMidnight:    
-                extendedURL = ","+str(self.getMidnightUnix())+"?units=si"
-            else:
-                extendedURL = "?units=si"
+    def weather_json(self):
+            extendedURL = ","+str(self.getMidnightUnix())+"?units=si"
             url = 'https://api.darksky.net/forecast/'+self.apiKey+'/'+str(self.lat)+','+str(self.long)+extendedURL
             jsn = requests.get(url)
             if jsn.status_code != 200:
@@ -35,8 +33,8 @@ class darkSky(object):
                 result = jsn.json()
                 return(result)
     
-    def hourly(self,fromMidnight):
-        result = self.weather_json(fromMidnight)
+    def hourly(self):
+        result = self.weather_json()
         #TODO: More efficient way to handle data NAs
         #Get current data
         cur={} 
@@ -177,40 +175,37 @@ class darkSky(object):
         
     
         
-    def pullDataFrameOnline(self, date = datetime.date.today(),fromMidnight = True, save = False):    
+    def pullDataFrameOnline(self, date = datetime.date.today(), minutely = True, save = False):    
         #The date of interest
         self.date = date
             
         #Pull the hourly weather predictions from the dark sky api and put as dataframe        
-        current, hourly = self.hourly(fromMidnight)
+        current, hourly = self.hourly()
         out = pd.DataFrame(hourly["Today"])
         out = out.transpose()
         out.loc["0.00"] = list(current.values())
         out = out.drop("Overall Weather",1)
         out = out.astype(float)
         #Interpolation sections (to minutes)
-        if fromMidnight:
-            midnight = datetime.datetime.combine(date, datetime.time.min)
-            out = out.set_index(pd.date_range(midnight, midnight + datetime.timedelta(days=1), freq = "H"))
-            #Reset index to time stamp
+        midnight = datetime.datetime.combine(date, datetime.time.min)
+        out = out.set_index(pd.date_range(midnight, midnight + datetime.timedelta(days=1), freq = "H"))
+        #Reset index to time stamp
+        if minutely == True:
             out = out.reindex(pd.date_range(midnight, midnight + datetime.timedelta(days=1), freq = "min"))
-        
-        else:
-            now = datetime.datetime.now()
-            out = out.set_index(pd.date_range(now, now + datetime.timedelta(days=1), freq = "H"))        
-            #Reset index to time stamp
-            out = out.reindex(pd.date_range(now, now + datetime.timedelta(days=1), freq = "min"))
-        
-        out = out.interpolate("linear")
+            out = out.interpolate("linear")
         if save:
-            out.to_csv(self.wd + "/../data/" + self.date.strftime("%Y_%m_%d") + ".csv")
+            if minutely:
+                direc = "minutely"
+            else:
+                direc = "hourly"
+            out.to_csv(self.wd + "/../data/" + direc + "/" + self.date.strftime("%Y_%m_%d") + ".csv")
         return out
     
     def getMidnightUnix(self):
         midnight = datetime.datetime.combine(self.date, datetime.time.min)
         return int(time.mktime(midnight.timetuple()))
     
-    def makeArchives(self, dateSet):
+    def makeArchives(self, dateSet, minutely = True):
         #Make user acknowledge pull limitations
         y = ""
         while not y == "Y":
@@ -221,13 +216,34 @@ class darkSky(object):
         
         #Pull data for all specified dates
         for date in dateSet:
-            self.pullDataFrameOnline(date = date, save = True)
+            self.pullDataFrameOnline(date = date, save = True, minutely = minutely)
     
-    def getData(self, date):
-        return pd.read_csv(self.wd + "/../data/" + date.strftime("%Y_%m_%d") + ".csv", index_col = 0)
-        
+    def getData(self, date=None, hourly = False, filepath = None):
+        if filepath == None:    
+            if not hourly:
+                direc = "minutely"
+            else:
+                direc = "hourly"
+            filepath = self.wd + "/../data/" + direc + "/" + date.strftime("%Y_%m_%d") + ".csv"
+        #Load weather data from archive (see data directory if you can't find the file for instructions)
+        out = pd.read_csv(filepath, index_col = 0, parse_dates=[0])
+        #Get rid of the next day midnight
+        out = out.drop(out.index[-1])
+        return out
+    
+    def loadAll(self, hourly = False):
+        if not hourly:
+            direc = "minutely"
+        else:
+            direc = "hourly"
+        self.all = pd.DataFrame()
+        for file in glob.glob(self.wd + "/../data/" + direc + "/*.csv"):
+            self.all = pd.concat((self.all,self.getData(filepath = file, hourly = hourly)))    
+    
+    
 if __name__ == '__main__':
     ds = darkSky(32.229856, -110.952019)
     #oneDay = ds.pullDataFrameOnline(date = datetime.date(2020,3,1), save = True)
-    dsData = ds.getData(date = datetime.date(2020,3,1))
-    ds.makeArchives([datetime.date.today() - datetime.timedelta(days= x + 999) for x in range(1000)])
+    #dsData = ds.getData(date = datetime.date(2020,3,1))
+    #ds.makeArchives([datetime.date.today() - datetime.timedelta(days= x + 980) for x in range(1000)], minutely = False)
+    #ds.loadAll()

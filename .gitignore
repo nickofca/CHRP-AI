@@ -1,7 +1,10 @@
 LoadPrediction/ProcessedData/*.csv
 LoadPrediction/RawData/*.xlsx
 .spyproject/
-DataAcquisition/Weather/data/*.csv
+DataAcquisition/Weather/data/hourly/*.csv
+DataAcquisition/Weather/data/minutely/*.csv
 *.csv
 **/.ipynb_checkpoints
 **/__pycache__
+**.h5
+
